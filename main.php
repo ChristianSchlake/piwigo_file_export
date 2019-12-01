@@ -12,8 +12,8 @@
 
 	<!--link rel="stylesheet" href="css/foundation.css">
 	<link rel="stylesheet" href="icons/foundation-icons.css"/-->
-	
-<style>      
+
+<style>
 	.size-12 { font-size: 12px; }
 	.size-14 { font-size: 14px; }
 	.size-16 { font-size: 16px; }
@@ -32,38 +32,46 @@
 <body>
 
 <?php
+	ini_set('max_execution_time', 1200);
 	/*
 	Variablen deklarieren
 	*/
 	$sBildverzeichnisTags="pics/Tags/";
 	$sBildverzeichnisKategorie="pics/Kategorie/";
 	$sDocumentRoot=dirname($_SERVER["SCRIPT_FILENAME"])."/";
-	
+//	$sDocumentTargetVerz = "/media/server/bilder/bilder_piwigo/";
+//	$sDocumentTargetVerz = "/storage/daten2/bilder/bilder_piwigo/";
+	$sDocumentTargetVerz = "/mnt/myBookLiveDuo/bilder/bilder_piwigo/";
+
 	echo "<h1>Tags</h1>"."<br>";
 	/*
 	Tags erstellen
 	*/
-	$result = mysqli_query($verbindung, "SELECT id, name FROM piwigo_tags");  
-	while($row = mysqli_fetch_row($result)) { 
+	$result = mysqli_query($verbindung, "SELECT id, name FROM piwigo_tags");
+	while($row = mysqli_fetch_row($result)) {
 		/*
 		Unterverzeichnis erstellen
 		*/
 		$sTmpVerz = $sDocumentRoot.$sBildverzeichnisTags.$row[1]."_".$row[0]."/";
+
 		mkdir($sTmpVerz, 0777, true);
+
 		/*
 		Bilder zum Tag ermitteln
 		*/
 		$result2 = mysqli_query($verbindung, "SELECT file, path FROM piwigo_image_tag AS T INNER JOIN piwigo_images AS I ON T.image_id = I.id WHERE T.tag_id=".$row[0].";");
 		while($row2 = mysqli_fetch_row($result2)) {
-			echo $sDocumentRoot.$row2[1].' -> '.$sTmpVerz.$row2[0].'<br />';
-			symlink($sDocumentRoot.$row2[1], $sTmpVerz.$row2[0]);
+			$sLinkName = $sTmpVerz.$row2[0];
+			$sTarget = str_replace("./upload/",$sDocumentTargetVerz,$row2[1]);
+			echo $sTarget." --> ".$sLinkName."<br>";
+			shell_exec ("ln -s '".$sTarget."' '".$sLinkName."'");
 		}
 	}
 
 	echo "<h1>Kategrorien</h1>"."<br>";
 	/*
 	Kategorien erstellen
-	*/	
+	*/
 	$result = mysqli_query($verbindung, "SELECT id, uppercats FROM piwigo_categories");
 	while($row = mysqli_fetch_row($result)) {
 		$sCategory=explode(",", $row[1]);
@@ -82,9 +90,18 @@
 		*/
 		$result2 = mysqli_query($verbindung, "SELECT file, path FROM piwigo_image_category AS C INNER JOIN piwigo_images AS I ON C.image_id = I.id WHERE C.category_id=".$row[0].";");
 		while($row2 = mysqli_fetch_row($result2)) {
-			echo $sDocumentRoot.$row2[1].' -> '.$sTmpVerz.$row2[0].'<br />';
-			symlink($sDocumentRoot.$row2[1], $sTmpVerz.$row2[0]);
-		}		
+
+                        $sLinkName = $sTmpVerz.$row2[0];
+                        $sTarget = str_replace("./upload/",$sDocumentTargetVerz,$row2[1]);
+                        echo $sTarget." --> ".$sLinkName."<br>";
+			shell_exec ("ln -s ".$sTarget." ".$sLinkName);
+
+
+//			echo $sDocumentRoot.$row2[1].' -> '.$sTmpVerz.$row2[0].'<br />';
+//			symlink($sDocumentRoot.$row2[1], $sTmpVerz.$row2[0]);
+                        shell_exec ("ln -s '".$sTarget."' '".$sLinkName."'");
+
+		}
 	}
 	/*
 	Verbindung zum Datenbankserver beenden
